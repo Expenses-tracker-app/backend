@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import expensRoutes from './routes/expenseRoutes.js';
+import incomeRoutes from './routes/incomeRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import tagRoutes from './routes/tagRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -35,7 +37,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 app.use(bodyParser.json());
 
 app.use('/expense', expensRoutes);
+app.use('/income', incomeRoutes);
 app.use('/user', userRoutes);
+app.use('/tag', tagRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
