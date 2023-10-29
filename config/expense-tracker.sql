@@ -37,3 +37,5 @@ ALTER TABLE "expenses" ADD FOREIGN KEY ("tag_id") REFERENCES "tags" ("tag_id");
 ALTER TABLE "incomes" ADD FOREIGN KEY ("user_id") REFERENCES "users" ("user_id");
 
 ALTER TABLE "incomes" ADD FOREIGN KEY ("tag_id") REFERENCES "tags" ("tag_id");
+
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public to user_name;

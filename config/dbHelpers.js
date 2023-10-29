@@ -4,12 +4,12 @@ const getItems = async (table) => {
     return await query(`SELECT * FROM ${table}`);
 };
 
-const getItemById = async (table, id) => {
-    return await query(`SELECT * FROM ${table} WHERE id = $1`, [id]);
+const getItemById = async (table, id_name, id) => {
+    return await query(`SELECT * FROM ${table} WHERE ${id_name} = $1`, [id]);
 };
 
-const deleteItemById = async (table, id) => {
-    return await query(`DELETE FROM ${table} WHERE id = $1`, [id]);
+const deleteItemById = async (table, id_name, id) => {
+    return await query(`DELETE FROM ${table} WHERE ${id_name} = $1`, [id]);
 };
 
 const insertItem = async (table, columns, values) => {
@@ -17,7 +17,7 @@ const insertItem = async (table, columns, values) => {
     return await query(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) RETURNING *`, values);
 };
 
-module.exports = {
+export {
     getItems,
     getItemById,
     deleteItemById,
