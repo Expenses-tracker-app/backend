@@ -26,6 +26,16 @@ const options = {
         url: 'http://localhost:' + PORT,
       },
     ],
+    securityDefinitions: {
+      bearerAuth: {
+        type: 'apiKey',
+        name: 'Authorization',
+        in: 'header',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: "Enter your JWT in the format 'Bearer <token>'",
+      }
+    }
   },
   apis: ['./routes/*.js'],
 };

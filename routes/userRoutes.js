@@ -9,11 +9,23 @@ import {
     deleteItemById,
     insertItem
   } from '../config/dbHelpers.js';
+import { authenticateToken } from '../common/auth.js';
 
 dotenv.config();
 const router = Router();
 const table = 'users';
 const jwtSecret = process.env.JWT_SECRET;
+
+// Need to define the security scheme here so that it can be referenced in the swagger docs for Autentication
+/**
+ * @swagger
+ * components:
+ *   securitySchemes:
+ *     bearerAuth:            # arbitrary name for the security scheme
+ *       type: http
+ *       scheme: bearer
+ *       bearerFormat: JWT
+ */
 
 /**
  * @swagger
@@ -51,7 +63,6 @@ const jwtSecret = process.env.JWT_SECRET;
 router.post('/create', async (req, res) => {
     try {
         const { email, psw, username } = req.body;
-
         const user = await getItemById(table, 'email', email)
 
         if (user.rows.length > 0) {
@@ -62,7 +73,7 @@ router.post('/create', async (req, res) => {
         const hashedPassword = await bcrypt.hash(psw, salt);
 
         const newUser = await query(
-            'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING *',
+            'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email',
             [username, hashedPassword, email]
         );
         res.json(newUser.rows[0]);
@@ -80,6 +91,8 @@ router.post('/create', async (req, res) => {
  *       - Users
  *     summary: Retrieve a specific user by ID
  *     description: Fetch a user by its ID from the database.
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -95,7 +108,7 @@ router.post('/create', async (req, res) => {
  *       '500':
  *         description: Server error
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const user = await query('SELECT user_id, username, email FROM users WHERE user_id = $1', [id]);
@@ -154,7 +167,7 @@ router.put('/update/:id', async (req, res) => {
         }
 
         const user = await query(
-            'UPDATE users SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING *',
+            'UPDATE users SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING user_id, username, email',
             [username, hashedPassword, id]
         );
 
@@ -200,5 +213,66 @@ router.delete('/delete/:id', async (req, res) => {
         res.status(500).send('Server error');
     }
 });
+
+/**
+ * @swagger
+ * /user/login:
+ *   post:
+ *     tags:
+ *       - Users
+ *     summary: User login
+ *     description: Authenticate a user and return a JWT.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - psw
+ *             properties:
+ *               email:
+ *                 type: string
+ *               psw:
+ *                 type: string
+ *     responses:
+ *       '200':
+ *         description: Returns a JWT for the authenticated user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 token:
+ *                   type: string
+ *       '400':
+ *         description: Account not found or Invalid email/password
+ *       '500':
+ *         description: Server error
+ */
+router.post('/login', async (req, res) => {
+    try {
+        const { email, psw } = req.body;
+        const user = await getItemById(table, 'email', email)
+
+        if (user.rows.length === 0) {
+            return res.status(400).json({ message: "Account not found in the database" });
+        }
+
+        const isValidPassword = await bcrypt.compare(psw, user.rows[0].password);
+        if (!isValidPassword) {
+            return res.status(400).json({ message: "Invalid email or password" });
+        }
+
+        // User is authenticated, now we generate a JWT
+        const token = jwt.sign({ user_id: user.rows[0].user_id }, jwtSecret, { expiresIn: '1h' });
+        res.json({ token });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+
 
 export default router;
