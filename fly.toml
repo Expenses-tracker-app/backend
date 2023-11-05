@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for expense-tracker-app-backend on 2023-11-04T12:07:13+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = "expense-tracker-app-backend"
+primary_region = "arn"
+
+[build]
+  image = "flyio/hellofly:latest"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[env]
+  NODE_ENV = "production"

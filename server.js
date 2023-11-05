@@ -7,10 +7,17 @@ import expensRoutes from './routes/expenseRoutes.js';
 import incomeRoutes from './routes/incomeRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import tagRoutes from './routes/tagRoutes.js';
+import Client from 'pg';
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT;
+const client = new Client({connectionString: process.env.DATABASE_URL})
+await client.connect()
+.then(() => console.log('Connected to the database successfully'))
+.catch(e => console.error('Failed to connect to the database', e));
+
+const PORT = process.env.PORT || 4000;
+const URL = process.env.URL || 'http://localhost:';
 
 // Swagger setup
 const options = {
@@ -23,7 +30,7 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:' + PORT,
+        url: URL + PORT,
       },
     ],
     securityDefinitions: {
