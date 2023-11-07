@@ -7,15 +7,24 @@ import incomeRoutes from './routes/incomeRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import tagRoutes from './routes/tagRoutes.js';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 
 dotenv.config();
 const app = express();
 app.use(express.json());
+
 app.use(cors({
   origin: '*',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Rate limiter
+var limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // max 100 requests per windowMs
+});
+app.use(limiter);
 
 const PORT = process.env.PORT || 8080;
 const URL = process.env.NODE_ENV == 'production' ? process.env.URL : 'http://localhost:' + PORT;
