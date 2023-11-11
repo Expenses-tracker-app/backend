@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - api-service-generation
 
 jobs:
   build-and-deploy:
