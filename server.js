@@ -2,7 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
-import expensRoutes from './routes/expenseRoutes.js';
+import expenseRoutes from './routes/expenseRoutes.js';
 import incomeRoutes from './routes/incomeRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import tagRoutes from './routes/tagRoutes.js';
@@ -62,7 +62,7 @@ const specs = swaggerJsdoc(options);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
-app.use('/expense', expensRoutes);
+app.use('/expense', expenseRoutes);
 app.use('/income', incomeRoutes);
 app.use('/user', userRoutes);
 app.use('/tag', tagRoutes);
