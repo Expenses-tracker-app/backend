@@ -3,12 +3,7 @@ import { query } from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import {
-    getItems,
-    getItemById,
-    deleteItemById,
-    insertItem
-  } from '../config/dbHelpers.js';
+import { getItemById, deleteItemById } from '../config/dbHelpers.js';
 import { authenticateToken } from '../common/auth.js';
 
 dotenv.config();
@@ -61,26 +56,26 @@ const jwtSecret = process.env.JWT_SECRET;
  *         description: Server error
  */
 router.post('/create', async (req, res) => {
-    try {
-        const { email, psw, username } = req.body;
-        const user = await getItemById(table, 'email', email)
+  try {
+    const { email, psw, username } = req.body;
+    const user = await getItemById(table, 'email', email);
 
-        if (user.rows.length > 0) {
-            return res.status(400).json({ message: "User already exists" });
-        }
-
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(psw, salt);
-
-        const newUser = await query(
-            'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email',
-            [username, hashedPassword, email]
-        );
-        res.json(newUser.rows[0]);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+    if (user.rows.length > 0) {
+      return res.status(400).json({ message: 'User already exists' });
     }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(psw, salt);
+
+    const newUser = await query(
+      'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email',
+      [username, hashedPassword, email]
+    );
+    res.json(newUser.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 });
 
 /**
@@ -109,17 +104,17 @@ router.post('/create', async (req, res) => {
  *         description: Server error
  */
 router.get('/:id', authenticateToken, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const user = await query('SELECT user_id, username, email FROM users WHERE user_id = $1', [id]);
-        if (user.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        res.json(user.rows[0]);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+  try {
+    const { id } = req.params;
+    const user = await query('SELECT user_id, username, email FROM users WHERE user_id = $1', [id]);
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
     }
+    res.json(user.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 });
 
 /**
@@ -156,30 +151,30 @@ router.get('/:id', authenticateToken, async (req, res) => {
  *         description: Server error
  */
 router.put('/update/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { psw, username } = req.body;
+  try {
+    const { id } = req.params;
+    const { psw, username } = req.body;
 
-        let hashedPassword = null;
-        if (psw) {
-            const salt = await bcrypt.genSalt(10);
-            hashedPassword = await bcrypt.hash(psw, salt);
-        }
-
-        const user = await query(
-            'UPDATE users SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING user_id, username, email',
-            [username, hashedPassword, id]
-        );
-
-        if (user.rows.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        res.json(user.rows[0]);
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+    let hashedPassword = null;
+    if (psw) {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(psw, salt);
     }
+
+    const user = await query(
+      'UPDATE users SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING user_id, username, email',
+      [username, hashedPassword, id]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 });
 
 /**
@@ -204,14 +199,14 @@ router.put('/update/:id', async (req, res) => {
  *         description: Server error
  */
 router.delete('/delete/:id', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deleteUser = await deleteItemById(table, 'user_id', id);
-        res.json({ message: "User deleted successfully" });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
-    }
+  try {
+    const { id } = req.params;
+    await deleteItemById(table, 'user_id', id);
+    res.json({ message: 'User deleted successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
 });
 
 /**
@@ -252,27 +247,26 @@ router.delete('/delete/:id', async (req, res) => {
  *         description: Server error
  */
 router.post('/login', async (req, res) => {
-    try {
-        const { email, psw } = req.body;
-        const user = await getItemById(table, 'email', email)
+  try {
+    const { email, psw } = req.body;
+    const user = await getItemById(table, 'email', email);
 
-        if (user.rows.length === 0) {
-            return res.status(400).json({ message: "Account not found in the database" });
-        }
-
-        const isValidPassword = await bcrypt.compare(psw, user.rows[0].password);
-        if (!isValidPassword) {
-            return res.status(400).json({ message: "Invalid email or password" });
-        }
-
-        // User is authenticated, now we generate a JWT
-        const token = jwt.sign({ user_id: user.rows[0].user_id }, jwtSecret, { expiresIn: '1h' });
-        res.json({ token });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server error');
+    if (user.rows.length === 0) {
+      return res.status(400).json({ message: 'Account not found in the database' });
     }
-});
 
+    const isValidPassword = await bcrypt.compare(psw, user.rows[0].password);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // User is authenticated, now we generate a JWT
+    const token = jwt.sign({ userId: user.rows[0].user_id }, jwtSecret, { expiresIn: '1h' });
+    res.json({ token });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 
 export default router;

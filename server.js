@@ -13,21 +13,23 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-app.use(cors({
-  origin: '*',
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+app.use(
+  cors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    allowedHeaders: ['Content-Type', 'Authorization']
+  })
+);
 
 // Rate limiter
-var limiter = rateLimit({
+const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // max 100 requests per windowMs
+  max: 100 // max 100 requests per windowMs
 });
 app.use(limiter);
 
 const PORT = process.env.PORT || 8080;
-const URL = process.env.NODE_ENV == 'production' ? process.env.URL : 'http://localhost:' + PORT;
+const URL = process.env.NODE_ENV === 'production' ? process.env.URL : 'http://localhost:' + PORT;
 
 // Swagger setup
 const options = {
@@ -36,12 +38,12 @@ const options = {
     info: {
       title: 'Expense Tracker API',
       version: '1.0.0',
-      description: 'API Documentation for the Expense Tracker application',
+      description: 'API Documentation for the Expense Tracker application'
     },
     servers: [
       {
-        url: URL,
-      },
+        url: URL
+      }
     ],
     securityDefinitions: {
       bearerAuth: {
@@ -50,11 +52,11 @@ const options = {
         in: 'header',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: "Enter your JWT in the format 'Bearer <token>'",
+        description: "Enter your JWT in the format 'Bearer <token>'"
       }
     }
   },
-  apis: ['./routes/*.js'],
+  apis: ['./routes/*.js']
 };
 
 // Swagger docs
@@ -89,8 +91,10 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-}).on('error', (err) => {
-  console.error('Failed to start server:', err);
-});
+app
+  .listen(PORT, '0.0.0.0', () => {
+    console.log(`Server is running on port ${PORT}`);
+  })
+  .on('error', (err) => {
+    console.error('Failed to start server:', err);
+  });
