@@ -1,0 +1,56 @@
+{
+    "globals": {
+        "process": "readonly"
+    },
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "plugins": ["jsdoc"],
+    "extends": [
+        "eslint:recommended", 
+        "standard",
+        "plugin:prettier/recommended"
+    ],
+    "parserOptions": {
+        "ecmaVersion": "latest",
+        "sourceType": "module"
+    },
+    "settings": {
+        "jsdoc": {
+          "enableFixer": false
+        }
+    },
+    "rules": {       
+    },
+    "overrides": [
+        {
+          "files": ["routes/**/*.js"],
+          "extends": ["plugin:jsdoc/recommended"],
+          "rules": {
+            "jsdoc/require-jsdoc": [
+                "error",
+                {
+                    "require": {
+                        "ArrowFunctionExpression": true,
+                        "FunctionExpression": true,
+                        "MethodDefinition": false,
+                        "ClassDeclaration": false,
+                        "FunctionDeclaration": true
+                    },
+                    "contexts": [
+                        // "ExpressionStatement > CallExpression"
+                        "CallExpression[callee.object.name='router'][callee.property.name=/^(get|post|put|delete|patch)$/]"
+                      ]
+                }
+            ],
+            "jsdoc/check-tag-names": [
+              "error",
+              {
+                "definedTags": ["swagger"]
+              }
+            ]
+          }
+        }
+      ]
+}

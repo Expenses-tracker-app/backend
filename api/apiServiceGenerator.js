@@ -15,33 +15,33 @@ const methodToAction = {
 };
 
 const getRoutes = () => {
-    let routes = [];
-    routeFiles.forEach(file => {
-        const filePath = path.join(routesPath, file);
-        const fileContents = fs.readFileSync(filePath, 'utf8');
-        const resourceName = file.replace('Routes.js', ''); // Assuming the file is named like 'userRoutes.js'
-      
-        const regex = /router\.(get|post|put|delete)\(['"`](.*?)['"`]/g;
-        let match;
-      
-        while ((match = regex.exec(fileContents)) !== null) {
-            const category = resourceName;
-            const method = match[1];
-            const path = match[2];
-            const action = methodToAction[method];
-            const all = path === '/' ? 'All' : '';
-            const name = `${action}${all}${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}`;
-            
-            routes.push({ name, category, path, method });
-        }
-    });
-    return routes;
-}
+  const routes = [];
+  routeFiles.forEach((file) => {
+    const filePath = path.join(routesPath, file);
+    const fileContents = fs.readFileSync(filePath, 'utf8');
+    const resourceName = file.replace('Routes.js', ''); // Assuming the file is named like 'userRoutes.js'
+
+    const regex = /router\.(get|post|put|delete)\(['"`](.*?)['"`]/g;
+    let match;
+
+    while ((match = regex.exec(fileContents)) !== null) {
+      const category = resourceName;
+      const method = match[1];
+      const path = match[2];
+      const action = methodToAction[method];
+      const all = path === '/' ? 'All' : '';
+      const name = `${action}${all}${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}`;
+
+      routes.push({ name, category, path, method });
+    }
+  });
+  return routes;
+};
 
 const generateServiceFunctions = (routes) => {
   let functions = '';
 
-  routes.forEach(route => {
+  routes.forEach((route) => {
     let functionName = route.name;
     if (route.path === '/login') functionName = 'login';
     if (route.path === '/logout') functionName = 'logout';
@@ -53,7 +53,11 @@ export async function ${functionName}(data) {
             method: '${route.method.toUpperCase()}',
             headers: {
                 'Content-Type': 'application/json',
-                ${route.path !== '/login' ? `...(getToken() ? { 'Authorization': \`Bearer \${getToken()}\` } : {})` : ''}
+                ${
+                  route.path !== '/login'
+                    ? `...(getToken() ? { 'Authorization': \`Bearer \${getToken()}\` } : {})`
+                    : ''
+                }
             },
             body: JSON.stringify(data),
         });
@@ -76,7 +80,7 @@ export async function ${functionName}(data) {
 
 `;
   });
-  
+
   return functions;
 };
 

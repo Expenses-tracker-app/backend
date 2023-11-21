@@ -1,9 +1,6 @@
 import { Router } from 'express';
 import { query } from '../config/db.js';
-import {
-  getItemById,
-  deleteItemById
-} from '../config/dbHelpers.js';
+import { getItemById, deleteItemById } from '../config/dbHelpers.js';
 
 const router = Router();
 const table = 'incomes';
@@ -23,13 +20,13 @@ const table = 'incomes';
  *           schema:
  *             type: object
  *             required:
- *               - user_id
+ *               - userId
  *               - date
  *               - amount
  *               - desc
- *               - tag_id
+ *               - tagId
  *             properties:
- *               user_id:
+ *               userId:
  *                 type: integer
  *               date:
  *                 type: string
@@ -39,7 +36,7 @@ const table = 'incomes';
  *                 format: double
  *               desc:
  *                 type: string
- *               tag_id:
+ *               tagId:
  *                 type: integer
  *     responses:
  *       '200':
@@ -49,15 +46,15 @@ const table = 'incomes';
  */
 router.post('/create', async (req, res) => {
   try {
-      const { user_id, date, amount, desc, tag_id } = req.body;
-      const newIncome = await query(
-          'INSERT INTO incomes (user_id, income_date, income_amount, income_description, tag_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-          [user_id, date, amount, desc, tag_id]
-      );
-      res.json(newIncome.rows[0]);
+    const { userId, date, amount, desc, tagId } = req.body;
+    const newIncome = await query(
+      'INSERT INTO incomes (user_id, income_date, income_amount, income_description, tag_id) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [userId, date, amount, desc, tagId]
+    );
+    res.json(newIncome.rows[0]);
   } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
@@ -87,10 +84,12 @@ router.post('/create', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await getItemById(table, 'user_id', id)
+    const result = await getItemById(table, 'user_id', id);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found or the User does not have any incomes' });
+      return res
+        .status(404)
+        .json({ message: 'User not found or the User does not have any incomes' });
     }
 
     res.json(result.rows);
@@ -122,7 +121,7 @@ router.get('/:id', async (req, res) => {
  *           schema:
  *             type: object
  *             properties:
- *               user_id:
+ *               userId:
  *                 type: integer
  *               date:
  *                 type: string
@@ -132,7 +131,7 @@ router.get('/:id', async (req, res) => {
  *                 format: double
  *               desc:
  *                 type: string
- *               tag_id:
+ *               tagId:
  *                 type: integer
  *     responses:
  *       '200':
@@ -142,16 +141,16 @@ router.get('/:id', async (req, res) => {
  */
 router.put('/update/:id', async (req, res) => {
   try {
-      const { id } = req.params;
-      const { user_id, date, amount, desc, tag_id } = req.body;
-      const updateIncome = await query(
-          'UPDATE incomes SET user_id = $1, income_date = $2, income_amount = $3, income_description = $4, tag_id = $5 WHERE income_id = $6 RETURNING *',
-          [user_id, date, amount, desc, tag_id, id]
-      );
-      res.json(updateIncome.rows[0]);
+    const { id } = req.params;
+    const { userId, date, amount, desc, tagId } = req.body;
+    const updateIncome = await query(
+      'UPDATE incomes SET user_id = $1, income_date = $2, income_amount = $3, income_description = $4, tag_id = $5 WHERE income_id = $6 RETURNING *',
+      [userId, date, amount, desc, tagId, id]
+    );
+    res.json(updateIncome.rows[0]);
   } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
@@ -178,12 +177,12 @@ router.put('/update/:id', async (req, res) => {
  */
 router.delete('/delete/:id', async (req, res) => {
   try {
-      const { id } = req.params;
-      const deleteIncome = await deleteItemById(table, 'income_id', id);
-      res.json({ message: "Income deleted successfully" });
+    const { id } = req.params;
+    await deleteItemById(table, 'income_id', id);
+    res.json({ message: 'Income deleted successfully' });
   } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
+    console.error(err.message);
+    res.status(500).send('Server error');
   }
 });
 
