@@ -48,36 +48,28 @@ const generateServiceFunctions = (routes) => {
 
     functions += `
 export async function ${functionName}(data) {
-    try {
-        const response = await fetch(\`\${API_URL}/${route.category}${route.path}\`, {
-            method: '${route.method.toUpperCase()}',
-            headers: {
-                'Content-Type': 'application/json',
-                ${
-                  route.path !== '/login'
-                    ? `...(getToken() ? { 'Authorization': \`Bearer \${getToken()}\` } : {})`
-                    : ''
-                }
-            },
-            body: JSON.stringify(data),
-        });
+  try {
+    const response = await fetch(\`\${API_URL}/${route.category}${route.path}\`, {
+      method: '${route.method.toUpperCase()}',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
 
-        const responseData = await response.json();
-        
-        if (responseData.error) {
-            throw new Error(responseData.error);
-        }
+    const responseData = await response.json();
 
-        ${route.path === '/login' ? `saveToken(responseData.token);` : ''}
-        ${route.path === '/logout' ? `removeToken();` : ''}
-        return responseData;
+    if (responseData.error) {
+      throw new Error(responseData.error);
     }
-    catch (err) {
-        console.error(err.message);
-        throw new Error('Server error');
-    }
+
+    return { status: response.status, ...responseData };
+  } catch (err) {
+    console.error(err.message);
+    throw new Error('Server error');
+  }
 }
-
 `;
   });
 
@@ -87,21 +79,12 @@ export async function ${functionName}(data) {
 const routes = getRoutes();
 console.log(routes);
 
-const apiServiceContent = `
-/*
+const apiServiceContent = `/*
 This is a generated file. Do not edit it directly!
 To change the contents of this file, edit api/apiServiceGenerator.js instead.
 */
 
-import { 
-    getToken,
-    saveToken,
-    //removeToken Add it for logout
-} from './authService';
-
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
-
-${generateServiceFunctions(routes)}
-`;
+${generateServiceFunctions(routes)}`;
 
 fs.writeFileSync(path.join(__dirname, 'apiService.js'), apiServiceContent);

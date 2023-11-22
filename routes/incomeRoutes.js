@@ -54,7 +54,7 @@ router.post('/create', async (req, res) => {
     res.json(newIncome.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -95,7 +95,7 @@ router.get('/:id', async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -150,7 +150,7 @@ router.put('/update/:id', async (req, res) => {
     res.json(updateIncome.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -182,7 +182,7 @@ router.delete('/delete/:id', async (req, res) => {
     res.json({ message: 'Income deleted successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

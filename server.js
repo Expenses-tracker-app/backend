@@ -8,16 +8,22 @@ import userRoutes from './routes/userRoutes.js';
 import tagRoutes from './routes/tagRoutes.js';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
+
+const PORT = process.env.PORT || 8080;
+const URL = process.env.NODE_ENV === 'production' ? process.env.URL : 'http://localhost:' + PORT;
+
 const app = express();
 app.use(express.json());
-
+app.use(cookieParser());
 app.use(
   cors({
-    origin: '*',
+    origin: process.env.FE_URL,
+    credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type']
   })
 );
 
@@ -27,9 +33,6 @@ const limiter = rateLimit({
   max: 100 // max 100 requests per windowMs
 });
 app.use(limiter);
-
-const PORT = process.env.PORT || 8080;
-const URL = process.env.NODE_ENV === 'production' ? process.env.URL : 'http://localhost:' + PORT;
 
 // Swagger setup
 const options = {
@@ -87,7 +90,7 @@ app.get('/healthcheck', (req, res) => {
 // Error handling
 app.use((err, req, res, next) => {
   console.error(err.stack);
-  res.status(500).send('Something broke!');
+  res.status(500).json({ message: 'Something broke!' });
 });
 
 // Start server

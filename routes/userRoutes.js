@@ -16,10 +16,10 @@ const jwtSecret = process.env.JWT_SECRET;
  * @swagger
  * components:
  *   securitySchemes:
- *     bearerAuth:            # arbitrary name for the security scheme
- *       type: http
- *       scheme: bearer
- *       bearerFormat: JWT
+ *     cookieAuth:  # Custom name for the security scheme
+ *       type: apiKey
+ *       in: cookie
+ *       name: token  # Name of the cookie used for authentication
  */
 
 /**
@@ -38,12 +38,12 @@ const jwtSecret = process.env.JWT_SECRET;
  *             type: object
  *             required:
  *               - email
- *               - psw
+ *               - password
  *               - username
  *             properties:
  *               email:
  *                 type: string
- *               psw:
+ *               password:
  *                 type: string
  *               username:
  *                 type: string
@@ -57,7 +57,7 @@ const jwtSecret = process.env.JWT_SECRET;
  */
 router.post('/create', async (req, res) => {
   try {
-    const { email, psw, username } = req.body;
+    const { email, password, username } = req.body;
     const user = await getItemById(table, 'email', email);
 
     if (user.rows.length > 0) {
@@ -65,7 +65,7 @@ router.post('/create', async (req, res) => {
     }
 
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(psw, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = await query(
       'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email',
@@ -74,7 +74,7 @@ router.post('/create', async (req, res) => {
     res.json(newUser.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -85,9 +85,10 @@ router.post('/create', async (req, res) => {
  *     tags:
  *       - Users
  *     summary: Retrieve a specific user by ID
- *     description: Fetch a user by its ID from the database.
+ *     description: >
+ *       Fetch a user by its ID from the database. Authentication is required for this endpoint and is handled via an HTTP-only cookie containing the JWT.
  *     security:
- *       - bearerAuth: []
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -100,6 +101,8 @@ router.post('/create', async (req, res) => {
  *         description: Single user object
  *       '404':
  *         description: User not found
+ *       '401':
+ *         description: Unauthorized - No valid authentication token provided
  *       '500':
  *         description: Server error
  */
@@ -113,7 +116,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
     res.json(user.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -125,6 +128,8 @@ router.get('/:id', authenticateToken, async (req, res) => {
  *       - Users
  *     summary: Update a user
  *     description: Modify an existing user's password and/or username in the database.
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -150,7 +155,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
  *       '500':
  *         description: Server error
  */
-router.put('/update/:id', async (req, res) => {
+router.put('/update/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { psw, username } = req.body;
@@ -173,7 +178,7 @@ router.put('/update/:id', async (req, res) => {
     res.json(user.rows[0]);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -185,6 +190,8 @@ router.put('/update/:id', async (req, res) => {
  *       - Users
  *     summary: Delete a user
  *     description: Remove a user from the database.
+ *     security:
+ *       - cookieAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -198,14 +205,14 @@ router.put('/update/:id', async (req, res) => {
  *       '500':
  *         description: Server error
  */
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     await deleteItemById(table, 'user_id', id);
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -216,7 +223,7 @@ router.delete('/delete/:id', async (req, res) => {
  *     tags:
  *       - Users
  *     summary: User login
- *     description: Authenticate a user and return a JWT.
+ *     description: Authenticates a user by their email and password. If successful, sets an HTTP-only cookie with the JWT for session management.
  *     requestBody:
  *       required: true
  *       content:
@@ -225,48 +232,75 @@ router.delete('/delete/:id', async (req, res) => {
  *             type: object
  *             required:
  *               - email
- *               - psw
+ *               - password
  *             properties:
  *               email:
  *                 type: string
- *               psw:
+ *                 description: The user's email address.
+ *                 example: user@example.com
+ *               password:
  *                 type: string
+ *                 description: The user's password.
+ *                 example: Password123
  *     responses:
- *       '200':
- *         description: Returns a JWT for the authenticated user
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *       '400':
- *         description: Account not found or Invalid email/password
- *       '500':
- *         description: Server error
+ *       200:
+ *         description: Login successful. A cookie named 'token' containing the JWT is set in the response.
+ *       400:
+ *         description: Invalid credentials. Either the email doesn't exist or the password is incorrect.
+ *       500:
+ *         description: Internal server error.
  */
 router.post('/login', async (req, res) => {
   try {
-    const { email, psw } = req.body;
+    const { email, password } = req.body;
     const user = await getItemById(table, 'email', email);
 
     if (user.rows.length === 0) {
       return res.status(400).json({ message: 'Account not found in the database' });
     }
 
-    const isValidPassword = await bcrypt.compare(psw, user.rows[0].password);
+    const isValidPassword = await bcrypt.compare(password, user.rows[0].password);
     if (!isValidPassword) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // User is authenticated, now we generate a JWT
     const token = jwt.sign({ userId: user.rows[0].user_id }, jwtSecret, { expiresIn: '1h' });
-    res.json({ token });
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 3600000
+    });
+    res.status(200).json({ message: 'Login successful' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({ message: 'Server error' });
   }
+});
+
+/**
+ * @swagger
+ * /user/logout:
+ *   post:
+ *     tags:
+ *       - Users
+ *     summary: Logs out the user
+ *     description: Clears the HTTP-only cookie containing the JWT token, effectively logging out the user.
+ *     responses:
+ *       200:
+ *         description: Logout successful. The authentication cookie has been cleared.
+ *       500:
+ *         description: Internal server error. Indicates a server-side problem.
+ */
+router.post('/logout', (req, res) => {
+  res.cookie('token', '', {
+    httpOnly: true,
+    expires: new Date(0),
+    secure: true,
+    sameSite: 'strict'
+  });
+  res.status(200).json({ message: 'Logout successful' });
 });
 
 export default router;
