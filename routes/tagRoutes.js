@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../config/db.js';
 import { getItems, getItemById, deleteItemById, insertItem } from '../config/dbHelpers.js';
+import { authenticateToken } from '../common/auth.js';
 
 const router = Router();
 const table = 'tags';
@@ -13,6 +14,8 @@ const table = 'tags';
  *       - Tags
  *     summary: Create a new tag
  *     description: Add a new tag to the database.
+ *     security:
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -27,10 +30,12 @@ const table = 'tags';
  *     responses:
  *       '200':
  *         description: Created tag object
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
  *       '500':
  *         description: Server error
  */
-router.post('/create', async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   try {
     const { tagName } = req.body;
     const newTag = await insertItem(table, ['tag_name'], [tagName]);
@@ -46,7 +51,7 @@ router.post('/create', async (req, res) => {
  * /tag:
  *   get:
  *     tags:
- *       - Tags
+ *      - Tags
  *     summary: Retrieve all tags
  *     description: Fetch all tags from the database.
  *     responses:
@@ -113,42 +118,43 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /tag/update/{id}:
+ * /tag/update:
  *   put:
  *     tags:
  *       - Tags
  *     summary: Update a tag
  *     description: Modify an existing tag in the database.
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the tag to update.
+ *     security:
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *              - id
+ *              - tagName
  *             properties:
- *               tagName:
- *                 type: string
+ *              id:
+ *               type: integer
+ *              tagName:
+ *               type: string
  *     responses:
  *       '200':
  *         description: Updated tag object
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
  *       '500':
  *         description: Server error
  */
-router.put('/update/:id', async (req, res) => {
+router.put('/update', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { tagName } = req.body;
-    const updateTag = await query('UPDATE tags SET tag_name = $1 WHERE tag_id = $2 RETURNING *', [
-      tagName,
-      id
-    ]);
+    const { id, tagName } = req.body;
+    const updateTag = await query(
+      `UPDATE ${table} SET tag_name = $1 WHERE tag_id = $2 RETURNING *`,
+      [tagName, id]
+    );
     res.json(updateTag.rows[0]);
   } catch (err) {
     console.error(err.message);
@@ -158,28 +164,36 @@ router.put('/update/:id', async (req, res) => {
 
 /**
  * @swagger
- * /tag/delete/{id}:
+ * /tag/delete:
  *   delete:
  *     tags:
  *       - Tags
  *     summary: Delete a tag
  *     description: Remove a tag from the database.
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the tag to delete.
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *              - id
+ *             properties:
+ *              id:
+ *                type: integer
  *     responses:
  *       '200':
  *         description: Tag deleted successfully
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
  *       '500':
  *         description: Server error
  */
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id } = req.body;
     await deleteItemById(table, 'tag_id', id);
     res.json({ message: 'Tag deleted successfully' });
   } catch (err) {

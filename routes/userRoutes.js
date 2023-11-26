@@ -101,10 +101,9 @@ router.post('/create', async (req, res) => {
 router.get('/', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.userId;
-    const user = await query(
-      `SELECT user_id, username, email FROM ${table} WHERE user_id = $1`,
+    const user = await query(`SELECT user_id, username, email FROM ${table} WHERE user_id = $1`, [
       userId
-    );
+    ]);
 
     if (user.rows.length === 0) {
       return res.status(404).json({ message: 'User not found' });
