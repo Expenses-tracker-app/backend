@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../config/db.js';
-import { getItemById, deleteItemById } from '../config/dbHelpers.js';
+import { getItemById } from '../config/dbHelpers.js';
+import { authenticateToken } from '../common/auth.js';
 
 const router = Router();
 const table = 'expenses';
@@ -11,8 +12,10 @@ const table = 'expenses';
  *   post:
  *     tags:
  *       - Expenses
- *     summary: Create a new expense
- *     description: Add a new expense to the database.
+ *     summary: Create a new expense for the authenticated user
+ *     description: Adds a new expense to the database for the authenticated user. The user is identified through the JWT token provided in the httpOnly cookie.
+ *     security:
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -20,37 +23,74 @@ const table = 'expenses';
  *           schema:
  *             type: object
  *             required:
- *               - userId
  *               - date
  *               - amount
  *               - desc
  *               - tagId
+ *               - isRec
+ *               - recFreq
  *             properties:
- *               userId:
- *                 type: integer
  *               date:
  *                 type: string
  *                 format: date
+ *                 description: Date of the expense
  *               amount:
  *                 type: number
- *                 format: double
+ *                 description: Amount of the expense
  *               desc:
  *                 type: string
+ *                 description: Description of the expense
  *               tagId:
  *                 type: integer
+ *                 description: ID of the expense tag/category
  *               isRec:
  *                 type: boolean
+ *                 description: Indicates if the expense is recurring
  *               recFreq:
  *                 type: string
+ *                 description: Frequency of the recurring expense (if applicable)
  *     responses:
  *       '200':
- *         description: Created expense object
+ *         description: Expense created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   description: The ID of the newly created expense
+ *                 user_id:
+ *                   type: integer
+ *                   description: The ID of the user to whom the expense belongs
+ *                 expense_date:
+ *                   type: string
+ *                   format: date
+ *                   description: Date of the expense
+ *                 expense_amount:
+ *                   type: number
+ *                   description: Amount of the expense
+ *                 expense_description:
+ *                   type: string
+ *                   description: Description of the expense
+ *                 tag_id:
+ *                   type: integer
+ *                   description: ID of the expense tag/category
+ *                 is_recurring:
+ *                   type: boolean
+ *                   description: Indicates if the expense is recurring
+ *                 recurring_frequency:
+ *                   type: string
+ *                   description: Frequency of the recurring expense (if applicable)
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
  *       '500':
  *         description: Server error
  */
-router.post('/create', async (req, res) => {
+router.post('/create', authenticateToken, async (req, res) => {
   try {
-    const { userId, date, amount, desc, tagId, isRec, recFreq } = req.body;
+    const userId = req.user.userId;
+    const { date, amount, desc, tagId, isRec, recFreq } = req.body;
     const newExpense = await query(
       'INSERT INTO expenses (user_id, expense_date, expense_amount, expense_description, tag_id, is_recurring, recurring_frequency) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [userId, date, amount, desc, tagId, isRec, recFreq]
@@ -64,31 +104,28 @@ router.post('/create', async (req, res) => {
 
 /**
  * @swagger
- * /expense/{id}:
+ * /expense/:
  *   get:
  *     tags:
  *       - Expenses
- *     summary: Retrieve expenses for a user
- *     description: Fetch all expenses associated with a user from the database.
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the user that owns the expenses.
+ *     summary: Retrieve expenses for the authenticated user
+ *     description: Fetch all expenses associated with the authenticated user from the database. The user is identified through the JWT token provided in the httpOnly cookie.
+ *     security:
+ *       - cookieAuth: []
  *     responses:
  *       '200':
- *         description: Array of expenses
+ *         description: Array of expenses for the authenticated user
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
  *       '404':
- *         description: User not found
+ *         description: User not found or the user does not have any expenses
  *       '500':
  *         description: Server error
  */
-router.get('/:id', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const result = await getItemById(table, 'user_id', id);
+    const userId = req.user.userId;
+    const result = await getItemById(table, 'user_id', userId);
 
     if (result.rows.length === 0) {
       return res
@@ -105,56 +142,105 @@ router.get('/:id', async (req, res) => {
 
 /**
  * @swagger
- * /expense/update/{id}:
+ * /expense/update:
  *   put:
  *     tags:
  *       - Expenses
- *     summary: Update an expense
- *     description: Modify an existing expense in the database.
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the expense to update.
+ *     summary: Update an existing expense for the authenticated user
+ *     description: Updates an existing expense in the database for the authenticated user. The user is identified through the JWT token provided in the httpOnly cookie, and the expense to update is identified by the expenseId. The expense can only be updated if it belongs to the authenticated user.
+ *     security:
+ *       - cookieAuth: []
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - expenseId
+ *               - date
+ *               - amount
+ *               - desc
+ *               - tagId
+ *               - isRec
+ *               - recFreq
  *             properties:
- *               userId:
+ *               expenseId:
  *                 type: integer
+ *                 description: The ID of the expense to update
  *               date:
  *                 type: string
  *                 format: date
+ *                 description: Updated date of the expense
  *               amount:
  *                 type: number
- *                 format: double
+ *                 description: Updated amount of the expense
  *               desc:
  *                 type: string
+ *                 description: Updated description of the expense
  *               tagId:
  *                 type: integer
+ *                 description: Updated ID of the expense tag/category
  *               isRec:
  *                 type: boolean
+ *                 description: Indicates if the updated expense is recurring
  *               recFreq:
  *                 type: string
+ *                 description: Updated frequency of the recurring expense (if applicable)
  *     responses:
  *       '200':
- *         description: Updated expense object
+ *         description: Expense updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 expense_id:
+ *                   type: integer
+ *                   description: The ID of the updated expense
+ *                 user_id:
+ *                   type: integer
+ *                   description: The ID of the user to whom the expense belongs
+ *                 expense_date:
+ *                   type: string
+ *                   format: date
+ *                   description: Updated date of the expense
+ *                 expense_amount:
+ *                   type: number
+ *                   description: Updated amount of the expense
+ *                 expense_description:
+ *                   type: string
+ *                   description: Updated description of the expense
+ *                 tag_id:
+ *                   type: integer
+ *                   description: Updated ID of the expense tag/category
+ *                 is_recurring:
+ *                   type: boolean
+ *                   description: Indicates if the updated expense is recurring
+ *                 recurring_frequency:
+ *                   type: string
+ *                   description: Updated frequency of the recurring expense (if applicable)
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
+ *       '404':
+ *         description: Expense not found or not owned by user
  *       '500':
  *         description: Server error
  */
-router.put('/update/:id', async (req, res) => {
+router.put('/update', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { userId, date, amount, desc, tagId, isRec, recFreq } = req.body;
+    const userId = req.user.userId;
+    const { expenseId, date, amount, desc, tagId, isRec, recFreq } = req.body;
+
     const updateExpense = await query(
-      'UPDATE expenses SET user_id = $1, expense_date = $2, expense_amount = $3, expense_description = $4, tag_id = $5, is_recurring = $6, recurring_frequency = $7 WHERE expense_id = $8 RETURNING *',
-      [userId, date, amount, desc, tagId, isRec, recFreq, id]
+      'UPDATE expenses SET expense_date = $1, expense_amount = $2, expense_description = $3, tag_id = $4, is_recurring = $5, recurring_frequency = $6 WHERE expense_id = $7 AND user_id = $8 RETURNING *',
+      [date, amount, desc, tagId, isRec, recFreq, expenseId, userId]
     );
+
+    if (updateExpense.rows.length === 0) {
+      return res.status(404).json({ message: 'Expense not found or not owned by user' });
+    }
+
     res.json(updateExpense.rows[0]);
   } catch (err) {
     console.error(err.message);
@@ -164,29 +250,51 @@ router.put('/update/:id', async (req, res) => {
 
 /**
  * @swagger
- * /expense/delete/{id}:
+ * /expense/delete:
  *   delete:
  *     tags:
  *       - Expenses
- *     summary: Delete an expense
- *     description: Remove an expense from the database.
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the expense to delete.
+ *     summary: Delete an expense for the authenticated user
+ *     description: Deletes an expense from the database. The expense is identified by the expenseId and can only be deleted if it belongs to the authenticated user, who is identified through the JWT token provided in the httpOnly cookie.
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - expenseId
+ *             properties:
+ *               expenseId:
+ *                 type: integer
+ *                 description: The ID of the expense to delete
  *     responses:
  *       '200':
  *         description: Expense deleted successfully
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
+ *       '404':
+ *         description: Expense not found or not owned by user
  *       '500':
  *         description: Server error
  */
-router.delete('/delete/:id', async (req, res) => {
+router.delete('/delete', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    await deleteItemById(table, 'expense_id', id);
+    const userId = req.user.userId;
+    const { expenseId } = req.body;
+
+    const result = await query(
+      `DELETE FROM ${table} WHERE expense_id = $1 AND user_id = $2 RETURNING *`,
+      [expenseId, userId]
+    );
+
+    if (result.rowCount === 0) {
+      // No rows deleted, either expense doesn't exist or doesn't belong to user
+      return res.status(404).json({ message: 'Expense not found or not owned by user' });
+    }
+
     res.json({ message: 'Expense deleted successfully' });
   } catch (err) {
     console.error(err.message);
