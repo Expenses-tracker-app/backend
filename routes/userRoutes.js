@@ -68,7 +68,7 @@ router.post('/create', async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = await query(
-      'INSERT INTO users (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email',
+      `INSERT INTO ${table} (username, password, email) VALUES ($1, $2, $3) RETURNING user_id, username, email`,
       [username, hashedPassword, email]
     );
     res.json(newUser.rows[0]);
@@ -80,22 +80,14 @@ router.post('/create', async (req, res) => {
 
 /**
  * @swagger
- * /user/{id}:
+ * /user/:
  *   get:
  *     tags:
  *       - Users
  *     summary: Retrieve a specific user by ID
- *     description: >
- *       Fetch a user by its ID from the database. Authentication is required for this endpoint and is handled via an HTTP-only cookie containing the JWT.
+ *     description: Fetch a user by its ID from the database. Authentication is required for this endpoint and is handled via an HTTP-only cookie containing the JWT.
  *     security:
  *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the user to retrieve.
  *     responses:
  *       '200':
  *         description: Single user object
@@ -106,69 +98,12 @@ router.post('/create', async (req, res) => {
  *       '500':
  *         description: Server error
  */
-router.get('/:id', authenticateToken, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const user = await query('SELECT user_id, username, email FROM users WHERE user_id = $1', [id]);
-    if (user.rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(user.rows[0]);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-/**
- * @swagger
- * /user/update/{id}:
- *   put:
- *     tags:
- *       - Users
- *     summary: Update a user
- *     description: Modify an existing user's password and/or username in the database.
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the user to update.
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               psw:
- *                 type: string
- *               username:
- *                 type: string
- *     responses:
- *       '200':
- *         description: Updated user object
- *       '404':
- *         description: User not found
- *       '500':
- *         description: Server error
- */
-router.put('/update/:id', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { psw, username } = req.body;
-
-    let hashedPassword = null;
-    if (psw) {
-      const salt = await bcrypt.genSalt(10);
-      hashedPassword = await bcrypt.hash(psw, salt);
-    }
-
+    const userId = req.user.userId;
     const user = await query(
-      'UPDATE users SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING user_id, username, email',
-      [username, hashedPassword, id]
+      `SELECT user_id, username, email FROM ${table} WHERE user_id = $1`,
+      userId
     );
 
     if (user.rows.length === 0) {
@@ -184,7 +119,70 @@ router.put('/update/:id', authenticateToken, async (req, res) => {
 
 /**
  * @swagger
- * /user/delete/{id}:
+ * /user/update:
+ *   put:
+ *     tags:
+ *       - Users
+ *     summary: Update a user
+ *     description: Modify an existing user's password and/or username in the database.
+ *     security:
+ *       - cookieAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *              - username
+ *              - password
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Updated frequency of the recurring expense (if applicable)
+ *               password:
+ *                 type: string
+ *                 description: Updated description of the expense
+ *     responses:
+ *       '200':
+ *         description: Updated user object
+ *       '401':
+ *         description: Unauthorized access (e.g., no token, invalid token)
+ *       '404':
+ *         description: User not found
+ *       '500':
+ *         description: Server error
+ */
+router.put('/update', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { username, password } = req.body;
+
+    let hashedPassword = null;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      hashedPassword = await bcrypt.hash(password, salt);
+    }
+
+    const user = await query(
+      `UPDATE ${table} SET username = $1, password = COALESCE($2, password) WHERE user_id = $3 RETURNING user_id, username, email`,
+      [username, hashedPassword, userId]
+    );
+
+    if (user.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json(user.rows[0]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /user/delete:
  *   delete:
  *     tags:
  *       - Users
@@ -192,23 +190,16 @@ router.put('/update/:id', authenticateToken, async (req, res) => {
  *     description: Remove a user from the database.
  *     security:
  *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         schema:
- *           type: integer
- *         required: true
- *         description: Numeric ID of the user to delete.
  *     responses:
  *       '200':
  *         description: User deleted successfully
  *       '500':
  *         description: Server error
  */
-router.delete('/delete/:id', authenticateToken, async (req, res) => {
+router.delete('/delete', authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    await deleteItemById(table, 'user_id', id);
+    const userId = req.user.userId;
+    await deleteItemById(table, 'user_id', userId);
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error(err.message);
@@ -287,13 +278,17 @@ router.post('/login', async (req, res) => {
  *       - Users
  *     summary: Logs out the user
  *     description: Clears the HTTP-only cookie containing the JWT token, effectively logging out the user.
+ *     security:
+ *       - cookieAuth: []
  *     responses:
  *       200:
  *         description: Logout successful. The authentication cookie has been cleared.
+ *       401:
+ *         description: Unauthorized access (e.g., no token, invalid token). You must be logged in to log out.
  *       500:
  *         description: Internal server error. Indicates a server-side problem.
  */
-router.post('/logout', (req, res) => {
+router.post('/logout', authenticateToken, (req, res) => {
   res.cookie('token', '', {
     httpOnly: true,
     expires: new Date(0),
