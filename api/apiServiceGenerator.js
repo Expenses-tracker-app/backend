@@ -29,7 +29,7 @@ const getRoutes = () => {
       const method = match[1];
       const path = match[2];
       const action = methodToAction[method];
-      const all = path === '/' ? 'All' : '';
+      const all = path === '/' && category === 'tag' ? 'All' : '';
       const name = `${action}${all}${resourceName.charAt(0).toUpperCase() + resourceName.slice(1)}`;
 
       routes.push({ name, category, path, method });
