@@ -51,37 +51,7 @@ const table = 'expenses';
  *                 description: Frequency of the recurring expense (if applicable)
  *     responses:
  *       '200':
- *         description: Expense created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 id:
- *                   type: integer
- *                   description: The ID of the newly created expense
- *                 user_id:
- *                   type: integer
- *                   description: The ID of the user to whom the expense belongs
- *                 expense_date:
- *                   type: string
- *                   format: date
- *                   description: Date of the expense
- *                 expense_amount:
- *                   type: number
- *                   description: Amount of the expense
- *                 expense_description:
- *                   type: string
- *                   description: Description of the expense
- *                 tag_id:
- *                   type: integer
- *                   description: ID of the expense tag/category
- *                 is_recurring:
- *                   type: boolean
- *                   description: Indicates if the expense is recurring
- *                 recurring_frequency:
- *                   type: string
- *                   description: Frequency of the recurring expense (if applicable)
+ *         description: Created expense object
  *       '401':
  *         description: Unauthorized access (e.g., no token, invalid token)
  *       '500':
@@ -92,7 +62,7 @@ router.post('/create', authenticateToken, async (req, res) => {
     const userId = req.user.userId;
     const { date, amount, desc, tagId, isRec, recFreq } = req.body;
     const newExpense = await query(
-      'INSERT INTO expenses (user_id, expense_date, expense_amount, expense_description, tag_id, is_recurring, recurring_frequency) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      `INSERT INTO ${table} (user_id, expense_date, expense_amount, expense_description, tag_id, is_recurring, recurring_frequency) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [userId, date, amount, desc, tagId, isRec, recFreq]
     );
     res.json(newExpense.rows[0]);
@@ -189,37 +159,7 @@ router.get('/', authenticateToken, async (req, res) => {
  *                 description: Updated frequency of the recurring expense (if applicable)
  *     responses:
  *       '200':
- *         description: Expense updated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 expense_id:
- *                   type: integer
- *                   description: The ID of the updated expense
- *                 user_id:
- *                   type: integer
- *                   description: The ID of the user to whom the expense belongs
- *                 expense_date:
- *                   type: string
- *                   format: date
- *                   description: Updated date of the expense
- *                 expense_amount:
- *                   type: number
- *                   description: Updated amount of the expense
- *                 expense_description:
- *                   type: string
- *                   description: Updated description of the expense
- *                 tag_id:
- *                   type: integer
- *                   description: Updated ID of the expense tag/category
- *                 is_recurring:
- *                   type: boolean
- *                   description: Indicates if the updated expense is recurring
- *                 recurring_frequency:
- *                   type: string
- *                   description: Updated frequency of the recurring expense (if applicable)
+ *         description: Uodated expense object
  *       '401':
  *         description: Unauthorized access (e.g., no token, invalid token)
  *       '404':
@@ -233,7 +173,7 @@ router.put('/update', authenticateToken, async (req, res) => {
     const { expenseId, date, amount, desc, tagId, isRec, recFreq } = req.body;
 
     const updateExpense = await query(
-      'UPDATE expenses SET expense_date = $1, expense_amount = $2, expense_description = $3, tag_id = $4, is_recurring = $5, recurring_frequency = $6 WHERE expense_id = $7 AND user_id = $8 RETURNING *',
+      `UPDATE ${table} SET expense_date = $1, expense_amount = $2, expense_description = $3, tag_id = $4, is_recurring = $5, recurring_frequency = $6 WHERE expense_id = $7 AND user_id = $8 RETURNING *`,
       [date, amount, desc, tagId, isRec, recFreq, expenseId, userId]
     );
 
@@ -291,7 +231,6 @@ router.delete('/delete', authenticateToken, async (req, res) => {
     );
 
     if (result.rowCount === 0) {
-      // No rows deleted, either expense doesn't exist or doesn't belong to user
       return res.status(404).json({ message: 'Expense not found or not owned by user' });
     }
 
