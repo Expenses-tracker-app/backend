@@ -9,6 +9,7 @@ import tagRoutes from './routes/tagRoutes.js';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
+import { authenticateToken } from './common/auth.js';
 
 dotenv.config();
 
@@ -75,6 +76,10 @@ app.use('/tag', tagRoutes);
 // Root endpoint
 app.get('/', (req, res) => {
   res.send('Hello World of Expenses and Incomes!');
+});
+
+app.get('/checkLogin', authenticateToken, (req, res) => {
+  res.status(200).json({ isLoggedIn: true });
 });
 
 // TODO: Add it to separate file for more complex checks
