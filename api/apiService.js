@@ -31,7 +31,7 @@ export async function createExpense(data) {
 
 export async function getExpense(data) {
   try {
-    const response = await fetch(`${API_URL}/expense/:id`, {
+    const response = await fetch(`${API_URL}/expense/`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -55,7 +55,7 @@ export async function getExpense(data) {
 
 export async function updateExpense(data) {
   try {
-    const response = await fetch(`${API_URL}/expense/update/:id`, {
+    const response = await fetch(`${API_URL}/expense/update`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -79,7 +79,7 @@ export async function updateExpense(data) {
 
 export async function deleteExpense(data) {
   try {
-    const response = await fetch(`${API_URL}/expense/delete/:id`, {
+    const response = await fetch(`${API_URL}/expense/delete`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -127,7 +127,7 @@ export async function createIncome(data) {
 
 export async function getIncome(data) {
   try {
-    const response = await fetch(`${API_URL}/income/:id`, {
+    const response = await fetch(`${API_URL}/income/`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -151,7 +151,7 @@ export async function getIncome(data) {
 
 export async function updateIncome(data) {
   try {
-    const response = await fetch(`${API_URL}/income/update/:id`, {
+    const response = await fetch(`${API_URL}/income/update`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -175,7 +175,7 @@ export async function updateIncome(data) {
 
 export async function deleteIncome(data) {
   try {
-    const response = await fetch(`${API_URL}/income/delete/:id`, {
+    const response = await fetch(`${API_URL}/income/delete`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -271,7 +271,7 @@ export async function getTag(data) {
 
 export async function updateTag(data) {
   try {
-    const response = await fetch(`${API_URL}/tag/update/:id`, {
+    const response = await fetch(`${API_URL}/tag/update`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -295,7 +295,7 @@ export async function updateTag(data) {
 
 export async function deleteTag(data) {
   try {
-    const response = await fetch(`${API_URL}/tag/delete/:id`, {
+    const response = await fetch(`${API_URL}/tag/delete`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -343,7 +343,7 @@ export async function createUser(data) {
 
 export async function getUser(data) {
   try {
-    const response = await fetch(`${API_URL}/user/:id`, {
+    const response = await fetch(`${API_URL}/user/`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -367,7 +367,7 @@ export async function getUser(data) {
 
 export async function updateUser(data) {
   try {
-    const response = await fetch(`${API_URL}/user/update/:id`, {
+    const response = await fetch(`${API_URL}/user/update`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -391,7 +391,7 @@ export async function updateUser(data) {
 
 export async function deleteUser(data) {
   try {
-    const response = await fetch(`${API_URL}/user/delete/:id`, {
+    const response = await fetch(`${API_URL}/user/delete`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
