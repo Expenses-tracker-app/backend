@@ -19,9 +19,10 @@ const URL = process.env.NODE_ENV === 'production' ? process.env.URL : 'http://lo
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+// TODO: change back to process.env.FE_URL
 app.use(
   cors({
-    origin: process.env.FE_URL,
+    origin: '*',
     credentials: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     allowedHeaders: ['Content-Type']
