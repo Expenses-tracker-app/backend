@@ -18,6 +18,7 @@ const URL = process.env.NODE_ENV === 'production' ? process.env.URL : 'http://lo
 
 const app = express();
 app.use(express.json());
+app.set('trust proxy', 1);
 app.use(cookieParser());
 app.use(
   cors({
@@ -78,6 +79,7 @@ app.get('/', (req, res) => {
   res.send('Hello World of Expenses and Incomes!');
 });
 
+// Authentication
 app.get('/checkLogin', authenticateToken, (req, res) => {
   res.status(200).json({ isLoggedIn: true });
 });
