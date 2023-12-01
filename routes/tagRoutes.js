@@ -198,7 +198,9 @@ router.delete('/delete', authenticateToken, async (req, res) => {
     res.json({ message: 'Tag deleted successfully' });
   } catch (err) {
     console.error(err.message);
-    res.status(500).json({ message: 'Server error' });
+    res
+      .status(500)
+      .json({ message: 'Server error. Cannot delete tag that is associated to a transaction' });
   }
 });
 
